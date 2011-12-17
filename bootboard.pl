@@ -12,11 +12,16 @@ my $cmd = $ARGV[2];
 my $uimage = $ARGV[3];
 my $fspath = `realpath $ARGV[4]` if $ARGV[4];
 chomp $fspath if $fspath;
+my $args = $ARGV[5] if $ARGV[5];
+
+sub uboot_exp { 
+	$e->expect(1000000, '-re', "^(OMAP3|TI8168)") or die;
+}
 
 sub uboot {
 	my ($c) = @_;
 	$e->send("$c\n");
-	$e->expect(1000000, '-re', "^(OMAP3|TI8168).*") or die;
+	uboot_exp;
 }
 
 $e = new Expect;
@@ -34,13 +39,20 @@ if ($cmd eq 'kermitshell') {
 }
 
 $e->expect(10, '-re', "^Hit") or die;
-uboot "c";
+$e->send("c");
+uboot_exp;
 
 if ($cmd eq 'ubootshell') {
 	$e->interact();
 }
 
 die 'fspath should not be empty !!' if !$fspath;
+if (not `awk '{print \$1}' /etc/exports | grep $fspath`) {
+	print "\n**********\n";
+	print "$fspath not in /etc/exports!!\n";
+	`sudo sed -i '\$a$fspath *(rw,nohide,insecure,no_subtree_check,async,no_root_squash)' /etc/exports`;
+	`sudo /etc/init.d/nfs-kernel-server restart`;
+}
 
 my $myip = "192.168.1.174";
 my $armip = "192.168.1.36";
@@ -51,32 +63,43 @@ uboot "setenv serverip $myip";
 uboot "setenv ipaddr $armip";
 `cp $uimage /var/lib/tftpboot`;
 
-my $cfg = "
+if ($args eq 'args3530') {
+	my $cfg = "
 auto eth0
-iface eth0 inet static
-address $armip
-netmask 255.255.255.0
-network $net
+	iface eth0 inet static
+	address $armip
+	netmask 255.255.255.0
+	network $net
 #gateway $gateip
 ";
-`echo "$cfg" > $fspath/etc/network/interfaces`;
-`echo "route add default gw $gateip" > $fspath/etc/myprofile`;
-`cat /etc/resolv.conf > $fspath/etc/resolv.conf`;
+	`echo "$cfg" > $fspath/etc/network/interfaces`;
+	`echo "route add default gw $gateip" > $fspath/etc/myprofile`;
+	`cat /etc/resolv.conf > $fspath/etc/resolv.conf`;
 
-my $a2 = "setenv bootargs " .
-"console=ttyS0,115200n8 vram=12M omapfb.mode=dvi:1024x768MR-16\@60 " .
-"omapdss.def_disp=dvi " .
-"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 " .
-"mem=99M\@0x80000000 mem=128M\@0x88000000 " .
-#				"ip=$armip:$myip:192.168.1.1:255.255.255.0:arm:eth0 " .
-"ip=$armip:$myip:$gateip:255.255.255.0:arm:eth0 " .
-#ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>
-"mpurate=1000 " .
-#"boardmodel=SBC35X-B1-1880-LUAC0 " 
-"boardmodel=SBC35X-B1-1880-LUAC0 "
-;
+	my $a2 = "setenv bootargs " .
+		"console=ttyS0,115200n8 vram=12M omapfb.mode=dvi:1024x768MR-16\@60 " .
+		"omapdss.def_disp=dvi " .
+		"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 " .
+		"mem=99M\@0x80000000 mem=128M\@0x88000000 " .
+		#"ip=$armip:$myip:192.168.1.1:255.255.255.0:arm:eth0 " .
+		"ip=$armip:$myip:$gateip:255.255.255.0:arm:eth0 " .
+		#ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>
+		"mpurate=1000 " .
+		#"boardmodel=SBC35X-B1-1880-LUAC0 " 
+		"boardmodel=SBC35X-B1-1880-LUAC0 "
+		;
+	uboot $a2;
+}
 
-uboot $a2;
+if ($args eq 'args8168') {
+	my $a2 = "setenv bootargs " .
+		"console=ttyO2,115200n8 rootwait rw mem=256M earlyprintk " .
+		"notifyk.vpssm3_sva=0xBF900000 vram=50M ti816xfb.vram=0:16M,1:16M,2:6M " .
+		"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 ".
+		"ip=$armip:$myip:$gateip:255.255.255.0:arm:eth0 " 
+		;
+	uboot $a2;
+}
 
 if ($uimage eq 'nand') {
 #uboot "mmc init; fatload mmc 0 \${loadaddr} uImage; bootm \${loadaddr}";
