@@ -10,13 +10,13 @@ my $kermrc = $ARGV[0];
 my $pwron = int($ARGV[1]);
 my $cmd = $ARGV[2];
 my $uimage = $ARGV[3];
-my $fspath = `realpath $ARGV[4]`;
-chomp $fspath;
+my $fspath = `realpath $ARGV[4]` if $ARGV[4];
+chomp $fspath if $fspath;
 
 sub uboot {
 	my ($c) = @_;
 	$e->send("$c\n");
-	$e->expect(1000000, '-re', "^OMAP3 .*") or die;
+	$e->expect(1000000, '-re', "^(OMAP3|TI8168).*") or die;
 }
 
 $e = new Expect;
@@ -40,10 +40,15 @@ if ($cmd eq 'ubootshell') {
 	$e->interact();
 }
 
-my $myip = "192.168.0.36";
-my $armip = "192.168.0.37";
-my $gateip = $myip;
-my $net = "192.168.0.0";
+die 'fspath should not be empty !!' if !$fspath;
+
+my $myip = "192.168.1.174";
+my $armip = "192.168.1.36";
+my $gateip = "192.168.1.1";
+my $net = "192.168.1.0";
+
+uboot "setenv serverip $myip";
+uboot "setenv ipaddr $armip";
 
 my $cfg = "
 auto eth0
@@ -75,6 +80,9 @@ uboot $a2;
 if ($uimage eq 'nand') {
 #uboot "mmc init; fatload mmc 0 \${loadaddr} uImage; bootm \${loadaddr}";
 	uboot "nand read \${loadaddr} 280000 400000; bootm \${loadaddr}";
+} else {
+	uboot "tftp \${loadaddr} $uimage";
+	uboot "bootm \${loadaddr}";
 }
 
 $e->interact();

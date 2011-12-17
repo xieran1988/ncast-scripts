@@ -1,6 +1,8 @@
 
 cross := $(PWD)/buildroot/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
 
+fshome-src:
+	make -C fshome CC=$(cross)gcc
 
 uboot:
 	make CROSS_COMPILE=$(cross) ARCH=arm sbc3530_config -C u-boot
@@ -55,4 +57,8 @@ emafs-3530:
 
 emafs2-3530:
 	./bootboard.pl kermrc3530 0 fs nand emafs2
+
+simplefs-8168:
+	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin simplefs
+
 
