@@ -49,6 +49,7 @@ my $net = "192.168.1.0";
 
 uboot "setenv serverip $myip";
 uboot "setenv ipaddr $armip";
+`cp $uimage /var/lib/tftpboot`;
 
 my $cfg = "
 auto eth0
