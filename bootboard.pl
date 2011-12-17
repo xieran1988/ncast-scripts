@@ -10,8 +10,8 @@ my $kermrc = $ARGV[0];
 my $pwron = int($ARGV[1]);
 my $cmd = $ARGV[2];
 my $uimage = $ARGV[3];
-my $fspath = `realpath $ARGV[4]` if $ARGV[4];
-chomp $fspath if $fspath;
+my $fs = $ARGV[4] if $ARGV[4];
+my $fspath;
 my $args = $ARGV[5] if $ARGV[5];
 
 sub uboot_exp { 
@@ -46,22 +46,22 @@ if ($cmd eq 'ubootshell') {
 	$e->interact();
 }
 
-die 'fspath should not be empty !!' if !$fspath;
-if (not `awk '{print \$1}' /etc/exports | grep $fspath`) {
-	print "\n**********\n";
-	print "$fspath not in /etc/exports!!\n";
-	`sudo sed -i '\$a$fspath *(rw,nohide,insecure,no_subtree_check,async,no_root_squash)' /etc/exports`;
-	`sudo /etc/init.d/nfs-kernel-server restart`;
+if ($fs ne 'mmc') {
+	$fspath = `realpath $fs` if $fs;
+	chomp $fspath if $fspath;
+	die "fspath $fspath should not be empty !!" if !$fspath;
+	if (not `awk '{print \$1}' /etc/exports | grep $fspath`) {
+		print "\n**********\n";
+		print "$fspath not in /etc/exports!!\n";
+		`sudo sed -i '\$a$fspath *(rw,nohide,insecure,no_subtree_check,async,no_root_squash)' /etc/exports`;
+		`sudo /etc/init.d/nfs-kernel-server restart`;
+	}
 }
 
 my $myip = "192.168.1.174";
 my $armip = "192.168.1.36";
 my $gateip = "192.168.1.1";
 my $net = "192.168.1.0";
-
-uboot "setenv serverip $myip";
-uboot "setenv ipaddr $armip";
-`cp $uimage /var/lib/tftpboot`;
 
 if ($args eq 'args3530') {
 	my $cfg = "
@@ -92,22 +92,29 @@ auto eth0
 }
 
 if ($args eq 'args8168') {
+	my $afs = $fs eq 'mmc' ? 
+		"root=/dev/mmcblk0p2 " :
+		"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 ".
+		"ip=$armip:$myip:$gateip:255.255.255.0:arm:eth0 " 
+		;
 	my $a2 = "setenv bootargs " .
 		"console=ttyO2,115200n8 rootwait rw mem=256M earlyprintk " .
 		"notifyk.vpssm3_sva=0xBF900000 vram=50M ti816xfb.vram=0:16M,1:16M,2:6M " .
-		"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 ".
-		"ip=$armip:$myip:$gateip:255.255.255.0:arm:eth0 " 
+		$afs
 		;
 	uboot $a2;
 }
 
 if ($uimage eq 'nand') {
 #uboot "mmc init; fatload mmc 0 \${loadaddr} uImage; bootm \${loadaddr}";
-	uboot "nand read \${loadaddr} 280000 400000; bootm \${loadaddr}";
+	uboot "nand read \${loadaddr} 280000 400000";
 } else {
+	uboot "setenv serverip $myip";
+	uboot "setenv ipaddr $armip";
+	`cp $uimage /var/lib/tftpboot`;
 	uboot "tftp \${loadaddr} $uimage";
-	uboot "bootm \${loadaddr}";
 }
+$e->send("bootm \${loadaddr}\n");
 
 $e->interact();
 

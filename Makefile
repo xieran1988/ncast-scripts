@@ -52,14 +52,26 @@ test-linux-ema-3530:
 test-linux-8168: 
 	./bootboard.pl kermrc8168 2 testkernel linux-2.6/arch/arm/boot/uImage
 
-emafs-3530:
-	./bootboard.pl kermrc3530 0 fs nand emafs args3530
-
 emafs2-3530:
 	./bootboard.pl kermrc3530 0 fs nand emafs2 args3530
 
+simplefs-3530:
+	./bootboard.pl kermrc3530 0 fs nand simplefs args3530
+
 simplefs-8168:
 	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin simplefs args8168
+
+mmcfs-8168:
+	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin mmc args8168
+
+rebuild-and-test:
+	make -C buildroot busybox-rebuild
+	make mknfs-simplefs
+	make simplefs-8168
+
+aragofs-8168:
+	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin aragofs args8168
+	
 
 bashcmd := \
 		rm -rf simplefs; \
@@ -67,11 +79,12 @@ bashcmd := \
 		tar -xvf buildroot/output/images/rootfs.tar -C simplefs ; \
 		cd simplefs/etc/init.d; \
 		mv S40network K40network; \
-		cd ..; \
-		sed -i 's/ttyS0/ttyO2/g' inittab; \
+		cd ../..; \
 		mkdir profile.d; \
+		sed -i 's/ttyS0/ttyO2/g' etc/inittab; \
 		echo 'echo hahaha' > profile.d/a.sh; 
 
 mknfs-simplefs:
 	sudo bash -c "$(bashcmd)"
+
 
