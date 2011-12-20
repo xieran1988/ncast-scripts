@@ -5,8 +5,8 @@ fshome-src:
 	make -C fshome CC=$(cross)gcc
 
 poweroff-all:
-	./pwr 1
-	./pwr 3
+	./pwr.pl 1
+	./pwr.pl 3
 
 uboot:
 	make CROSS_COMPILE=$(cross) ARCH=arm sbc3530_config -C u-boot
@@ -59,8 +59,9 @@ test-linux-8168:
 emafs2-3530:
 	./bootboard.pl kermrc3530 0 fs nand emafs2 args3530
 
+.PHONY: simplefs-3530 simplefs-8168
 simplefs-3530:
-	./bootboard.pl kermrc3530 0 fs nand simplefs args3530
+	./bootboard.pl kermrc3530 0 fs nand simplefs-3530 args3530
 
 simplefs-8168:
 	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin simplefs args8168
@@ -68,35 +69,17 @@ simplefs-8168:
 mmcfs-8168:
 	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin mmc args8168
 
-rebuild-and-test:
+rebuild-busybox-and-test-8168:
 	make -C buildroot busybox-rebuild
 	make mknfs-simplefs
 	make simplefs-8168
 
 aragofs-8168:
 	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin aragofs args8168
-
-bak-simplefs-root:
-	sudo tar -cvf simplefs-root.tar simplefs/root
 	
-bashcmd := \
-	tar -cvf simplefs-root.tar simplefs/root; \
-	rm -rf simplefs; \
-	mkdir simplefs; \
-	tar -xvf buildroot/output/images/rootfs.tar -C simplefs ; \
-	cd simplefs/etc/init.d; \
-	mv S40network K40network; \
-	cd ../..; \
-	chmod 777 root; \
-	mkdir etc/profile.d; \
-	echo 'echo hahaha' > etc/profile.d/a.sh; \
-	sed -i 's/ttyS0/ttyO2/g' etc/inittab; \
-	cd ..; \
-	tar -xvf simplefs-root.tar; \
-	tar -xvf libncurses.tar -C simplefs; \
-	tar -xvf libtinfo.tar -C simplefs; 
+mknfs-simplefs-3530:
+	sudo bash mksimplefs.sh 3530
 
-mknfs-simplefs:
-	sudo bash -c "$(bashcmd)"
-
+telnet-3530:
+	telnet 192.168.1.36
 

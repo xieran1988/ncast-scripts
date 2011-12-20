@@ -59,11 +59,12 @@ if ($fs ne 'mmc') {
 }
 
 my $myip = "192.168.1.174";
-my $armip = "192.168.1.36";
 my $gateip = "192.168.1.1";
 my $net = "192.168.1.0";
+my $armip;
 
 if ($args eq 'args3530') {
+	$armip = "192.168.1.36";
 	my $cfg = "
 auto eth0
 	iface eth0 inet static
@@ -93,6 +94,7 @@ auto eth0
 }
 
 if ($args eq 'args8168') {
+	$armip = "192.168.1.37";
 	my $afs = $fs eq 'mmc' ? 
 		"root=/dev/mmcblk0p2 " :
 		"root=/dev/nfs nfsroot=$myip:$fspath,port=2049 ".

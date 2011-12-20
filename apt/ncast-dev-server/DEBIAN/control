@@ -1,0 +1,10 @@
+Package: ncast-dev-server
+Version: 1.1
+Architecture: i386
+Depends: rinetd, realpath, exuberant-ctags, u-boot-tools, libncurses5-dev, gettext, bison, flex, build-essential, tftpd-hpa, vim, nfs-kernel-server, gnome-panel, openssh-client, lighttpd, git, ckermit, libexpect-perl
+Priority: standard
+Section: devel
+Maintainer: xieran1988@gmail.com
+Description: Ncast developer center server
+ This virtual package installs the depends packages and some conf scripts.
+
