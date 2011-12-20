@@ -72,9 +72,10 @@ auto eth0
 	network $net
 #gateway $gateip
 ";
-	`echo "$cfg" > $fspath/etc/network/interfaces`;
-	`echo "route add default gw $gateip" > $fspath/etc/myprofile`;
-	`cat /etc/resolv.conf > $fspath/etc/resolv.conf`;
+#	`sudo echo "$cfg" > $fspath/etc/network/interfaces`;
+#	`sudo echo "route add default gw $gateip" > $fspath/etc/myprofile`;
+	`sudo cat /etc/resolv.conf > $fspath/etc/resolv.conf`;
+	`sudo cp inittab-3530 $fspath/etc/inittab`;
 
 	my $a2 = "setenv bootargs " .
 		"console=ttyS0,115200n8 vram=12M omapfb.mode=dvi:1024x768MR-16\@60 " .
@@ -102,6 +103,7 @@ if ($args eq 'args8168') {
 		"notifyk.vpssm3_sva=0xBF900000 vram=50M ti816xfb.vram=0:16M,1:16M,2:6M " .
 		$afs
 		;
+	`sudo cp inittab-8168 $fspath/etc/inittab`;
 	uboot $a2;
 }
 

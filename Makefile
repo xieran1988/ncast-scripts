@@ -4,6 +4,10 @@ cross := $(PWD)/buildroot/output/host/opt/ext-toolchain/bin/arm-none-linux-gnuea
 fshome-src:
 	make -C fshome CC=$(cross)gcc
 
+poweroff-all:
+	./pwr 1
+	./pwr 3
+
 uboot:
 	make CROSS_COMPILE=$(cross) ARCH=arm sbc3530_config -C u-boot
 	make CROSS_COMPILE=$(cross) ARCH=arm -C u-boot
@@ -71,18 +75,26 @@ rebuild-and-test:
 
 aragofs-8168:
 	./bootboard.pl kermrc8168 2 fs uImage-dm816x-evm.bin aragofs args8168
-	
 
+bak-simplefs-root:
+	sudo tar -cvf simplefs-root.tar simplefs/root
+	
 bashcmd := \
-		rm -rf simplefs; \
-		mkdir simplefs; \
-		tar -xvf buildroot/output/images/rootfs.tar -C simplefs ; \
-		cd simplefs/etc/init.d; \
-		mv S40network K40network; \
-		cd ../..; \
-		mkdir profile.d; \
-		sed -i 's/ttyS0/ttyO2/g' etc/inittab; \
-		echo 'echo hahaha' > profile.d/a.sh; 
+	tar -cvf simplefs-root.tar simplefs/root; \
+	rm -rf simplefs; \
+	mkdir simplefs; \
+	tar -xvf buildroot/output/images/rootfs.tar -C simplefs ; \
+	cd simplefs/etc/init.d; \
+	mv S40network K40network; \
+	cd ../..; \
+	chmod 777 root; \
+	mkdir etc/profile.d; \
+	echo 'echo hahaha' > etc/profile.d/a.sh; \
+	sed -i 's/ttyS0/ttyO2/g' etc/inittab; \
+	cd ..; \
+	tar -xvf simplefs-root.tar; \
+	tar -xvf libncurses.tar -C simplefs; \
+	tar -xvf libtinfo.tar -C simplefs; 
 
 mknfs-simplefs:
 	sudo bash -c "$(bashcmd)"
