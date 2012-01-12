@@ -6,11 +6,18 @@ use strict;
 
 my $ip = $ARGV[0];
 my $cmd = $ARGV[1];
-$e = new Expect;
+my $eof = $ARGV[2];
+my $e = new Expect;
 $e->spawn("telnet $ip");
 $e->expect(2, '-re', "^Escape") or exit 123;
+$e->expect(2, '-re', "# ") or exit 123;
+$e->send("cd /root\n");
+$e->expect(2, '-re', "# ") or exit 123;
 if ($cmd) {
 	$e->send($cmd."\n");
-	$e->expect(1000000000, '-re', "^you would never get this fucking line") or die 'fuck';
+	$eof = "^you would never get this" if !$eof;
+	$e->expect(1000000000, '-re', $eof) or die 'fuck';
+	exit 0
 }
+$e->interact();
 
